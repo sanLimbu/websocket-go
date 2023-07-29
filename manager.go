@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -18,6 +20,7 @@ var (
 		ReadBufferSize:  1024,
 		WriteBufferSize: 2014,
 	}
+	ErrEventNotSupported = errors.New("this event type is not supported")
 )
 
 // Manager is used to hold references to all Clients Registered, and Broadcasting etc
@@ -25,16 +28,44 @@ var (
 type Manager struct {
 	clients ClientList
 
-	// Using a syncMutex here to be able to lcok state before editing clients
+	// Using a syncMutex here to be able to lock state before editing clients
 	// Could also use Channels to block
 	sync.RWMutex
+
+	//handlers are functions that are used to handle Events
+	handlers map[string]EventHandler
 }
 
 // NewManager is used to initalize all the values inside the manager
 
 func NewManager() *Manager {
-	return &Manager{
-		clients: make(ClientList),
+	m := &Manager{
+		clients:  make(ClientList),
+		handlers: make(map[string]EventHandler),
+	}
+	m.setupEventHandlers()
+	return m
+}
+
+// setupEventHandlers configure and add all handlers
+func (m *Manager) setupEventHandlers() {
+	m.handlers[EventSendMessage] = func(e Event, c *Client) error {
+		fmt.Println(e)
+		return nil
+	}
+}
+
+// routeEvent is used to make sure the correct event goes into the correct handler
+func (m *Manager) routeEvent(event Event, c *Client) error {
+	// Check if Handler is present in Map
+	if handler, ok := m.handlers[event.Type]; ok {
+		// Execute the handler and return any err
+		if err := handler(event, c); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return ErrEventNotSupported
 	}
 }
 
