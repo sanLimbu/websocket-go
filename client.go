@@ -30,7 +30,10 @@ type Client struct {
 	manager *Manager
 
 	//egress is used to avoid concurrent writes on the websocket
-	egress chan []byte
+	egress chan Event
+
+	// chatroom is used to know what room user is in
+	chatroom string
 }
 
 // NewClient is used to initialize a new Client with all required values initialized
@@ -39,7 +42,7 @@ func NewClient(conn *websocket.Conn, manager *Manager) *Client {
 	return &Client{
 		connection: conn,
 		manager:    manager,
-		egress:     make(chan []byte),
+		egress:     make(chan Event),
 	}
 }
 

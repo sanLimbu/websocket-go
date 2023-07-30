@@ -64,6 +64,39 @@
             }
          }
 
+          /**
+         * SendMessageEvent is used to send messages to other clients
+         * */
+
+         class SendMessageEvent {
+            constructor(message, from) {
+                this.message = message;
+                this.from = from;
+            }
+         }
+
+         /**
+         * NewMessageEvent is messages comming from clients
+         * */
+
+        class NewMessageEvent {
+            constructor(message, from, sent) {
+              this.message = message;
+              this.from = from;
+              this.sent = sent;
+            }
+        
+        }
+        
+         /**
+         * ChangeChatRoomEvent is used to switch chatroom
+         * */
+         class ChangeChatRoomEvent {
+            constructor(name) {
+                this.name = name;
+            }
+         }
+
          /**
          * routeEvent is a proxy function that routes
          * events into their correct Handler
@@ -77,7 +110,9 @@
 
             switch(event.type) {
              case "new_message":
-                console.log("new message");
+                const messageEvent = Object.assign(new NewMessageEvent, event.payload);
+                appendChatMessage(messageEvent);
+
                 break;
 
              default:
@@ -88,6 +123,19 @@
         }
 
 
+         /**
+         * appendChatMessage takes in new messages and adds them to the chat
+         * */
+         function appendChatMessage(messageEvent) {
+             var date = new Date(messageEvent.sent);
+            // format message
+            const formattedMsg = `${date.toLocaleString()}: ${messageEvent.message}`;
+            // Append Message
+            textarea = document.getElementById("chatmessages");
+            textarea.innerHTML = textarea.innerHTML + "\n" + formattedMsg;
+            textarea.scrollTop = textarea.scrollHeight;
+         }
+
 
         /**
          * changeChatRoom will update the value of selectedchat
@@ -97,7 +145,14 @@
             // Change Header to reflect the Changed chatroom
             var newchat = document.getElementById("chatroom");
             if (newchat != null && newchat.value != selectedchat) {
-                console.log(newchat);
+                selectedchat = newchat.value;
+                header = document.getElementById("chat-header").innerHTML = "Currently in chat: " + selectedchat;
+                
+                let changeEvent = new ChangeChatRoomEvent(selectedchat);
+                sendEvent("change_room", changeEvent);
+                textarea = document.getElementById("chatmessages");
+                textarea.innerHTML = `You changed room into: ${selectedchat}`;
+
             }
             return false;
         }
@@ -108,7 +163,8 @@
         function sendMessage() {
             var newmessage = document.getElementById("message");
             if (newmessage != null) {
-               sendEvent("send_message", newmessage.value);
+               let outgoingEvent = new SendMessageEvent(newmessage.value, "santosh");
+               sendEvent("send_message", outgoingEvent);
             }
             return false;
         }
